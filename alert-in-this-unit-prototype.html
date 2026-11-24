@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlamTri geo - Alerts in this unit (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --n0: #FFFFFF; --n80: #414349; --n90: #393B40; --n95: #2C2C2C; --n100: #1E1F22; --n110: #141414;
+    --p5: #EDF4FC; --p20: #3F89DE; --p60: #184E8C;
+    --green: #32D74B; --yellow: #FEDB5D; --red: #FE7274; --cyan: #14E0FF; --muted: #808790; --warn: #EE9222;
+    --lv5: #FE2023; --lv4: #FE3E41; --lv3: #FE5D5F; --lv2: #FE7274; --lv1: #FE8587;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b0b0c; overflow: hidden; font-family: Inter, Roboto, system-ui, sans-serif; color: #fff; }
+  #viewport { position: fixed; inset: 0; }
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: clip; background: #141518; font-size: 16px; }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+  .ico { width: 20px; height: 20px; fill: currentColor; flex: none; }
+  .ico24 { width: 24px; height: 24px; }
+  .abs { position: absolute; }
+  .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* map */
+  #map { position: absolute; inset: 0; background: url("alert-prototype-assets/map.png") center / cover; }
+  #map::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.38); }
+  .marker { position: absolute; width: 140px; height: 110px; cursor: pointer; z-index: 2; }
+  .marker .tag { position: absolute; left: 0; top: 0; display: flex; gap: 8px; align-items: center; height: 36px; padding: 0 10px; background: var(--n90); border: 1px solid var(--n100); border-radius: 6px; font-family: Sarabun, Inter, sans-serif; font-weight: 500; white-space: nowrap; }
+  .marker .dot { width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--green); }
+  .marker .truck { position: absolute; left: 62px; top: 38px; width: 77px; height: 59px; background: url("alert-prototype-assets/truck.png") center / contain no-repeat; }
+  .marker:hover .tag { border-color: var(--p20); }
+  .marker.selected { z-index: 3; }
+  .marker.selected .hl { position: absolute; left: -11px; top: 4px; width: 122px; height: 122px; background: rgba(254,219,93,.92); }
+  .marker.selected .ring { position: absolute; left: 4px; top: 58px; width: 92px; height: 50px; border: 2px solid rgba(255,255,255,.85); border-radius: 50%; }
+  .marker.selected .truck { left: 12px; top: 58px; width: 77px; height: 59px; }
+  .marker.selected .tag { left: 0; top: -2px; }
+
+  /* header */
+  #header { position: absolute; left: 0; top: 0; width: 1920px; height: 70px; background: var(--n110); border-bottom: 1px solid var(--n80); display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; z-index: 6; box-shadow: 8px 8px 4px rgba(0,0,0,.25); }
+  #header .left { display: flex; align-items: center; gap: 32px; width: 444px; }
+  #header img { width: 110px; height: 44px; object-fit: cover; }
+  .hbtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 4px; background: var(--n80); color: var(--p5); font-weight: 600; }
+  .hbtn.sq { width: 40px; padding: 0; }
+  .seg { display: flex; gap: 8px; padding: 4px; background: var(--n100); border-radius: 8px; }
+  .seg .hbtn { background: none; font-weight: 400; color: #fff; }
+  .seg .hbtn.on { background: var(--n95); color: var(--p20); font-weight: 600; }
+  .live-dot { width: 16px; height: 16px; border-radius: 50%; background: #FE2023; }
+  #header .right { display: flex; align-items: center; gap: 16px; }
+  #header .btns { display: flex; gap: 4px; }
+  .avatar { width: 44px; height: 44px; border-radius: 24px; background: var(--p5); border: 2px solid var(--p20); color: var(--p60); font-family: Roboto, sans-serif; font-weight: 700; display: grid; place-items: center; }
+
+  /* navbar */
+  #navbar { position: absolute; left: 0; top: 70px; width: 158px; height: 376px; padding: 12px 10px; background: rgba(20,21,24,.82); display: flex; flex-direction: column; gap: 4px; z-index: 5; }
+  #navbar button { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 4px; background: var(--n80); color: var(--p5); font-size: 14px; font-weight: 500; text-align: left; }
+  #navbar button.on { background: none; color: var(--p20); }
+  #navbar img { width: 20px; height: 20px; }
+
+  /* unit list */
+  #ulist { position: absolute; left: 158px; top: 70px; width: 474px; height: 1009px; background: var(--n100); border-left: 1px solid var(--n80); padding: 12px; display: flex; flex-direction: column; gap: 12px; z-index: 5; }
+  #ulist .title { display: flex; align-items: center; gap: 12px; height: 40px; }
+  #ulist .title span { flex: 1; }
+  #ulist .tabs { display: flex; gap: 8px; padding: 4px; background: var(--n110); border-radius: 8px; opacity: .9; }
+  #ulist .tabs button { flex: 1; height: 40px; border-radius: 4px; color: var(--p20); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #ulist .tabs button.on { background: var(--n95); }
+  .search { height: 40px; border: 1px solid var(--n80); background: var(--n110); border-radius: 4px; display: flex; align-items: center; padding: 0 10px; gap: 8px; color: #a8adb5; }
+  .search input { flex: 1; background: none; border: 0; outline: 0; color: #fff; font: inherit; }
+  .selbar { display: flex; gap: 8px; align-items: center; }
+  .selbar .sel { flex: 1; height: 40px; border-radius: 4px; background: var(--n80); display: flex; align-items: center; padding: 0 12px; font-weight: 600; color: var(--p5); gap: 8px; }
+  .selbar .sel span:first-child { flex: 1; }
+  .tbl { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--n110); border-radius: 8px; padding: 6px; }
+  .tr { display: grid; grid-template-columns: 1fr 1fr 1.3fr; align-items: center; height: 36.6px; text-align: center; font-size: 14px; border-radius: 4px; cursor: pointer; flex: none; }
+  .tr.th { cursor: default; height: 34px; background: var(--n100); border: 1px solid var(--n80); color: var(--p5); font-weight: 600; margin-bottom: 4px; }
+  .tr.th span { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .tr:not(.th):hover { background: var(--n95); }
+  .tr.sel { background: var(--n80); }
+  .tbody { overflow: hidden; flex: 1; min-height: 0; }
+  .st-prod { color: var(--green); } .st-delay { color: var(--yellow); } .st-idle { color: var(--cyan); } .st-break { color: var(--lv4); } .st-off { color: #b4b8bf; }
+
+  /* alert area */
+  #alertWrap { position: absolute; left: 972px; top: 70px; width: 948px; height: 943px; z-index: 5; pointer-events: none; }
+  #alertWrap > * { pointer-events: auto; }
+  #panel { position: absolute; left: 0; top: 0; width: 473px; background: var(--n100); border-left: 1px solid var(--n80); padding: 12px; display: flex; flex-direction: column; gap: 12px; box-shadow: 12px 12px 12px rgba(0,0,0,.25); overflow: hidden; }
+  #panel.normal { height: 608px; } #panel.high { height: 918px; }
+  #panel[hidden] { display: none; }
+  .phead { display: flex; align-items: center; gap: 12px; height: 40px; flex: none; }
+  .phead span { flex: 1; }
+  .xbtn { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 4px; }
+  .xbtn:hover { background: var(--n80); }
+  .banner { display: flex; gap: 8px; padding: 8px; background: var(--n95); border: 1px solid var(--warn); border-radius: 6px; font-family: Roboto, sans-serif; letter-spacing: .15px; flex: none; }
+  .banner svg { color: var(--warn); margin-top: 1px; }
+  .ptabs { display: flex; gap: 8px; height: 48px; padding: 4px; background: var(--n110); border-radius: 8px; flex: none; opacity: .95; }
+  .ptabs button { flex: 1; border-radius: 4px; color: var(--p20); font-weight: 600; }
+  .ptabs button.on { background: var(--n95); }
+  .ptabs button:hover:not(.on) { background: rgba(255,255,255,.05); }
+  .pbody { flex: 1; min-height: 0; background: var(--n110); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .tiles { display: flex; gap: 8px; flex: none; }
+  .tile { flex: 1; min-width: 0; background: var(--n80); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 4px; text-align: left; border: 1px solid transparent; font-family: Sarabun, Inter, sans-serif; font-size: 14px; cursor: pointer; }
+  .tile:hover { background: #4a4d54; }
+  .tile.simple.on { border-color: var(--p20); background: #32353b; }
+  .tile:not(.simple).on { border-color: var(--p20); box-shadow: inset 0 0 0 1px var(--p20); }
+  .tile .gh { display: flex; gap: 8px; width: 100%; font-weight: 700; }
+  .tile .gh b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tile .gh i { font-style: normal; font-weight: 400; color: #fff; }
+  .tile hr { border: 0; border-top: 1px solid #5a5d65; margin: 0; width: 100%; }
+  .tile.simple { align-items: center; text-align: center; gap: 2px; }
+  .tile.simple .gh { justify-content: center; }
+  .tile.simple .num { font-weight: 700; color: #fff; font-size: 14px; }
+  .lvrow { display: flex; align-items: center; gap: 6px; height: 24px; width: 100%; border-radius: 4px; }
+  .lvrow.zero { opacity: .35; }
+  .lvrow.on { outline: 1px solid var(--p20); outline-offset: 1px; }
+  .lvrow:hover:not(.zero) { background: rgba(255,255,255,.07); }
+  .lvrow .n { flex: 1; text-align: right; font-weight: 700; color: #fff; }
+  .lvrow.zero .n { color: var(--muted); }
+  .lvrow .u { color: var(--muted); }
+  .lvb { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 4px; border: 1px solid; background: var(--n110); font: 700 12px Roboto, sans-serif; }
+  .lv5 { color: var(--lv5); border-color: var(--lv5); } .lv4 { color: var(--lv4); border-color: var(--lv4); }
+  .lv3 { color: var(--lv3); border-color: var(--lv3); } .lv2 { color: var(--lv2); border-color: var(--lv2); } .lv1 { color: var(--lv1); border-color: var(--lv1); }
+  .listgroup { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .bar { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 4px; background: var(--n80); color: var(--p5); font-weight: 600; text-align: left; flex: none; }
+  .bar .grow { flex: 1; }
+  .bar .reg { font-weight: 400; }
+  .bar:hover { background: #4a4d54; }
+  .bar.open { background: #4a4d54; }
+  .rows { flex: 1; min-height: 0; background: var(--n110); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+  .rows::-webkit-scrollbar { width: 6px; } .rows::-webkit-scrollbar-thumb { background: var(--n80); border-radius: 3px; }
+  .arow { display: grid; align-items: center; gap: 8px; height: 40px; flex: none; padding: 8px; background: var(--n100); border-radius: 4px; font-family: Roboto, sans-serif; font-size: 16px; }
+  .arow.n { grid-template-columns: 20px 1.45fr .9fr .75fr 1.05fr; font-size: 14px; }
+  .arow.h { grid-template-columns: 20px auto 1fr auto auto; }
+  .arow .rd { width: 8px; height: 8px; border-radius: 50%; margin-left: 6px; background: transparent; }
+  .arow .rd.unread { background: #FE2023; }
+  .arow .name { font-weight: 500; white-space: nowrap; }
+  .arow .met { text-align: left; color: #fff; }
+  .arow .met small { color: var(--muted); font-size: inherit; margin-left: 4px; }
+  .arow .src { color: #fff; }
+  .arow .ago { color: var(--muted); font-style: italic; text-align: right; white-space: nowrap; }
+  .arow.h .v { text-align: right; } .arow.h .m { color: var(--muted); font-weight: 500; text-align: left; }
+  .empty { margin: auto; color: var(--muted); text-align: center; font-size: 14px; padding: 16px; line-height: 1.5; }
+  .markall { height: 40px; flex: none; border-radius: 4px; background: var(--n80); color: var(--p5); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .markall:hover:not(:disabled) { background: #4a4d54; }
+  .markall:disabled { opacity: .45; cursor: default; }
+  .smenu { position: absolute; left: 0; right: 0; top: 84px; background: var(--n90); border: 1px solid var(--n100); border-radius: 4px; padding: 8px; box-shadow: 8px 8px 2px rgba(0,0,0,.25); z-index: 10; }
+  .mi { display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; padding: 0 8px 0 4px; border-radius: 4px; text-align: left; font-family: Roboto, sans-serif; }
+  .mi:hover { background: var(--n80); }
+  .mi .sp { width: 20px; height: 20px; flex: none; display: grid; place-items: center; color: var(--p5); }
+
+  /* icon strip */
+  #strip { position: absolute; left: 473px; top: 0; width: 72px; height: 480px; background: var(--n110); padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  #strip button { width: 40px; height: 40px; border-radius: 4px; background: var(--n80); display: grid; place-items: center; position: relative; }
+  #strip button.on { background: var(--n100); }
+  #strip img { width: 24px; height: 24px; }
+  #strip button.on::after { content: ""; position: absolute; right: 5px; top: 5px; }
+
+  /* floating menus */
+  .pop { position: absolute; z-index: 20; background: var(--n90); border: 1px solid var(--n100); border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 8px 8px 2px rgba(0,0,0,.25); }
+  .pop[hidden] { display: none; }
+  .pop .mi.cur { color: #fff; }
+  .pop .typebtn { height: 39px; border-radius: 4px; background: var(--n95); color: var(--p20); font-weight: 600; display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+  .pop .typebtn.open { background: #1b2f4b; }
+  #typeMenu { overflow-y: auto; max-height: 1060px; }
+
+  /* unit detail */
+  #detail { position: absolute; left: 545px; top: 0; width: 403px; height: 943px; background: var(--n100); border-left: 1px solid var(--n80); padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  #detail .dh { display: flex; align-items: center; gap: 12px; height: 40px; flex: none; }
+  #detail .dh span { flex: 1; }
+  .cam { background: var(--n110); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; flex: none; }
+  .cam .ch { display: flex; align-items: center; gap: 12px; height: 32px; font-weight: 600; font-size: 14px; }
+  .cam .ch a { color: var(--p20); font-weight: 400; text-decoration: underline; }
+  .cam .ch .sp { flex: 1; }
+  .cam .ch .lv { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+  .cam .ch .lv i { width: 14px; height: 14px; border-radius: 50%; background: #FE2023; }
+  .cam .feed { height: 228px; border-radius: 4px; background: url("alert-prototype-assets/shot.png") -1541px -198px / 1920px 1080px no-repeat; }
+  .kv { background: var(--n110); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-family: Roboto, sans-serif; font-size: 14px; flex: none; }
+  .kv .r { display: flex; justify-content: space-between; gap: 12px; }
+  .kv .r b { font-weight: 400; text-align: right; }
+  .kv .hd { display: flex; justify-content: space-between; align-items: flex-start; font-weight: 700; margin-bottom: 4px; }
+  .kv .hd em { font-style: normal; font-weight: 400; display: flex; gap: 8px; align-items: center; }
+  .op { display: flex; justify-content: space-between; padding: 0 10px; font-family: Roboto, sans-serif; font-size: 14px; }
+
+  #reset { position: fixed; right: 12px; bottom: 10px; z-index: 50; font: 12px Inter, sans-serif; color: #9aa0a8; background: rgba(0,0,0,.55); border: 1px solid #333; border-radius: 4px; padding: 6px 10px; }
+  #reset:hover { color: #fff; border-color: var(--p20); }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <div id="map"></div>
+    <div id="markers"></div>
+
+    <div id="header">
+      <div class="left">
+        <img src="alert-prototype-assets/logo.png" alt="AlamTri geo">
+        <button class="hbtn" style="background:none">Adaro indonesia</button>
+      </div>
+      <div class="seg">
+        <button class="hbtn"><svg class="ico" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6 8.5 6V6l-8.5 6z"/></svg>Playback</button>
+        <button class="hbtn on"><span class="live-dot"></span>Live mode</button>
+      </div>
+      <div class="right">
+        <div class="btns">
+          <button class="hbtn sq"><svg class="ico ico24" viewBox="0 0 24 24"><path d="M7.76 16.24C6.67 15.16 6 13.66 6 12s.67-3.16 1.76-4.24l1.42 1.42C8.45 9.9 8 10.9 8 12c0 1.1.45 2.1 1.17 2.83l-1.41 1.41zm8.48 0C17.33 15.16 18 13.66 18 12s-.67-3.16-1.76-4.24l-1.42 1.42C15.55 9.9 16 10.9 16 12c0 1.1-.45 2.1-1.17 2.83l1.41 1.41zM12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm8 2c0 2.21-.9 4.21-2.35 5.65l1.42 1.42C20.88 17.26 22 14.76 22 12s-1.12-5.26-2.93-7.07l-1.42 1.42C19.1 7.79 20 9.79 20 12zM6.35 6.35 4.93 4.93C3.12 6.74 2 9.24 2 12s1.12 5.26 2.93 7.07l1.42-1.42C4.9 16.21 4 14.21 4 12s.9-4.21 2.35-5.65z"/></svg></button>
+          <button class="hbtn sq"><svg class="ico ico24" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></button>
+          <button class="hbtn sq"><svg class="ico ico24" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></button>
+          <button class="hbtn" style="width:130px">Tools <svg class="ico" viewBox="0 0 24 24" style="color:var(--p20)"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg><svg class="ico" viewBox="0 0 24 24"><path d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg></button>
+        </div>
+        <div style="font-family:Roboto,sans-serif">Mon, 26 Dec 2024 <b>&nbsp;13:02 WIB</b></div>
+        <div class="avatar">PS</div>
+      </div>
+    </div>
+
+    <div id="navbar">
+      <button><svg class="ico" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</button>
+      <button><svg class="ico" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>All Site</button>
+      <button class="on"><img src="Icons/airport_shuttle_active.svg" alt="">Unit</button>
+      <button><svg class="ico" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>Camera</button>
+      <button><svg class="ico" viewBox="0 0 24 24"><path d="M17 12v-2h-2V8h-2.5v2h-1V8H9v2H7v2h2.5l-1.5 7h8.5l-1.5-7H17zM4 6h2V4H4v2zm14 0h2V4h-2v2z"/></svg>Device</button>
+      <button><img src="Icons/person.svg" alt="">Operator</button>
+      <button><svg class="ico" viewBox="0 0 24 24"><path d="M11 2h2v5h-2zm0 7h2v6h-2zm0 8h2v5h-2z"/></svg>Road</button>
+    </div>
+
+    <div id="ulist">
+      <div class="title"><svg class="ico" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg><span>Unit list</span><button class="xbtn" style="color:var(--p20)"><svg class="ico ico24" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+      <div class="tabs"><button class="on"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>Viewport</button><button><svg class="ico" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>All unit</button></div>
+      <div class="search"><input placeholder="search units" aria-label="search units"><svg class="ico" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
+      <div class="selbar"><div class="sel"><span>Exavator</span><span>(99)</span><svg class="ico" viewBox="0 0 24 24"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39c.51-.66.04-1.61-.79-1.61H5.04c-.83 0-1.3.95-.79 1.61z"/></svg></div><svg class="ico ico24" viewBox="0 0 24 24" style="color:var(--p20)"><path d="M12 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 14c-1.1 0-2 .9-2 2h4c0-1.1-.9-2-2-2zM4 4l16 16"/></svg></div>
+      <div class="tbl"><div class="tr th"><span>Unit</span><span>Health %</span><span>Status</span></div><div class="tbody" id="ubody"></div></div>
+    </div>
+
+    <div id="alertWrap">
+      <div id="panel" class="normal"></div>
+      <div id="strip"></div>
+      <div id="detail"></div>
+    </div>
+
+    <div class="pop" id="timeMenu" hidden style="left:654px;top:454px;width:338px"></div>
+    <div class="pop" id="typeMenu" hidden style="left:984px;top:334px;width:437px"></div>
+  </div>
+</div>
+<button id="reset" title="Restore the unread dots and default state">Reset demo</button>
+
+<script>
+(function () {
+  'use strict';
+
+  var ICON = {
+    x: '<svg class="ico ico24" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
+    bell: '<svg class="ico" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>',
+    warn: '<svg class="ico" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',
+    filter: '<svg class="ico" viewBox="0 0 24 24"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39c.51-.66.04-1.61-.79-1.61H5.04c-.83 0-1.3.95-.79 1.61z"/></svg>',
+    swap: '<svg class="ico" viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3 5 6.99h3V14h2V6.99h3L9 3z"/></svg>',
+    check: '<svg class="ico" viewBox="0 0 24 24" style="color:var(--green)"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+    chev: '<svg class="ico" viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>',
+    cbOn: '<svg class="ico" viewBox="0 0 24 24" style="color:var(--green)"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>',
+    cbOff: '<svg class="ico" viewBox="0 0 24 24" style="color:#9aa0a8"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>',
+    doneAll: '<svg class="ico" viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41 6 19l1.41-1.41L1.83 12 .41 13.41z"/></svg>',
+    truck: '<svg class="ico" viewBox="0 0 24 24"><path d="M17 5H3C1.9 5 1 5.89 1 7v9h2c0 1.65 1.34 3 3 3s3-1.35 3-3h5.5c0 1.65 1.34 3 3 3s3-1.35 3-3H23v-5l-6-6zM3 11V7h4v4H3zm3 6.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM13 11H9V7h4v4zm4.5 6.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM15 11V7h1l4 4h-5z"/></svg>',
+    locate: '<svg class="ico ico24" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>',
+    info: '<svg class="ico" viewBox="0 0 24 24" style="color:var(--p20)"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>',
+    expand: '<svg class="ico" viewBox="0 0 24 24" style="color:var(--p20)"><path d="M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10z"/></svg>'
+  };
+
+  /* ---------- data ---------- */
+  var GROUPS = {
+    zw: { label: 'ZERO WASTE', color: '#FEDB5D' },
+    ma: { label: 'MAXIMIZE ASSET', color: '#32D74B' },
+    zl: { label: 'ZERO LITIGATION', color: '#FE7274' }
+  };
+  var GROUP_ORDER = ['zw', 'ma', 'zl'];
+  var TYPES = [
+    ['Ach. Production', 'zw', '#32D74B'], ['BD. Loader', 'zw', '#FEDB5D'], ['BD. Hauler', 'zw', '#FEDB5D'],
+    ['Lo. Standby', 'zw', '#FEDB5D'], ['Lo. Standby (dur)', 'zw', '#FEDB5D'], ['Hanging', 'zw', '#FEDB5D'],
+    ['waiting', 'zw', '#FEDB5D'], ['Trv. speed', 'zl', '#FEDB5D'], ['Incident', 'zl', '#FE7274'],
+    ['Ftg. Monitoring', 'zl', '#FE7274'], ['Dump. activity', 'zw', '#FEDB5D'], ['Perbaikan front', 'ma', '#FEDB5D'],
+    ['states-toilet', 'ma', '#FEDB5D'], ['states-sholat', 'ma', '#FEDB5D']
+  ];
+  var TYPE = {};
+  TYPES.forEach(function (t) { TYPE[t[0]] = { group: t[1], color: t[2] }; });
+
+  var TIME = [
+    { id: 'today', label: 'Today', max: 782 },
+    { id: 'h1', label: 'last hour', max: 60 },
+    { id: 'h3', label: 'last 3 hours', max: 180 },
+    { id: 'h6', label: 'last 6 hours', max: 360 },
+    { id: 'shift', label: 'Current shift', max: 422 }
+  ];
+  var SORTS = {
+    normal: [['latest', 'Latest'], ['severe', 'Most severe'], ['duration', 'Longest duration']],
+    high: [['severe', 'Most severe'], ['duration', 'Longest duration'], ['latest', 'Latest']]
+  };
+
+  /* a: alert_id, t: type, lv: level (high alerts only), dur: minutes, m/mu: displayed metric, src: source, ago: minutes since last event */
+  var DEFAULT_ALERTS = [
+    { a: 'AL-0412', t: 'Ach. Production', lv: 5, dur: 4440, src: 'ADMO', ago: 0.17 },
+    { a: 'AL-0409', t: 'BD. Loader', lv: 4, dur: 310, src: 'EX2062', ago: 2 },
+    { a: 'AL-0401', t: 'Lo. Standby (dur)', lv: 3, dur: 95, src: 'EX2062', ago: 25 },
+    { a: 'AL-0377', t: 'Hanging', lv: 3, dur: 42, src: 'ADMO', ago: 140 },
+    { a: 'AL-0405', t: 'Perbaikan front', lv: 2, dur: 120, src: 'ADMO', ago: 55 },
+    { a: 'AL-0411', t: 'Incident', lv: 5, dur: 15, src: 'ADMO', ago: 8 },
+    { a: 'AL-0352', t: 'Ftg. Monitoring', lv: 4, dur: 60, src: 'SIS', ago: 300 },
+    { a: 'AL-0344', t: 'Trv. speed', lv: 1, dur: 5, src: 'SIS', ago: 400, read: true },
+    { a: 'AL-0410', t: 'Ach. Production', dur: 179, m: '179', mu: 'min', src: 'ADMO', ago: 0.17 },
+    { a: 'AL-0408', t: 'BD. Loader', dur: 59, m: '59', mu: 'min', src: 'EX2062', ago: 2 },
+    { a: 'AL-0406', t: 'BD. Hauler', dur: 12, m: '4', mu: 'unit', src: 'ADMO', ago: 15 },
+    { a: 'AL-0403', t: 'Lo. Standby', dur: 8, m: '1', mu: 'unit', src: 'EX2062', ago: 30 },
+    { a: 'AL-0398', t: 'waiting', dur: 22, m: '22', mu: 'min', src: 'EX2062', ago: 48 },
+    { a: 'AL-0390', t: 'Dump. activity', dur: 17, m: '17', mu: 'min', src: 'ADMO', ago: 95 },
+    { a: 'AL-0384', t: 'states-toilet', dur: 14, m: '14', mu: 'min', src: 'ADMO', ago: 170 },
+    { a: 'AL-0371', t: 'Hanging', dur: 36, m: '36', mu: 'min', src: 'EX2062', ago: 230 },
+    { a: 'AL-0360', t: 'states-sholat', dur: 25, m: '25', mu: 'min', src: 'ADMO', ago: 330 },
+    { a: 'AL-0349', t: 'Lo. Standby (dur)', dur: 41, m: '41', mu: 'min', src: 'EX2062', ago: 500 },
+    { a: 'AL-0322', t: 'waiting', dur: 19, m: '19', mu: 'min', src: 'EX2062', ago: 900 }
+  ];
+
+  var ALERTS = {
+    DT6701: DEFAULT_ALERTS,
+    DT6702: [
+      { a: 'AL-6702-0201', t: 'Incident', lv: 4, dur: 30, src: 'ADMO', ago: 12 },
+      { a: 'AL-6702-0198', t: 'Ach. Production', dur: 66, m: '66', mu: 'min', src: 'ADMO', ago: 20 },
+      { a: 'AL-6702-0190', t: 'waiting', dur: 9, m: '9', mu: 'min', src: 'EX2062', ago: 75 }
+    ]
+  };
+
+  var UNITS = [];
+  var STAT = [['Production', 'st-prod', 98], ['Delay', 'st-delay', 99], ['Idle', 'st-idle', 85], ['Breakdown', 'st-break', 75], ['Engine off', 'st-off', 85]];
+  for (var i = 0; i < 20; i++) {
+    var s = STAT[i % 5];
+    var uid = 'DT67' + (i < 9 ? '0' : '') + (i + 1);
+    UNITS.push({ id: uid, status: s[0], cls: s[1], health: s[2] });
+    if (!ALERTS[uid]) {
+      ALERTS[uid] = DEFAULT_ALERTS.map(function(item, idx) {
+        return Object.assign({}, item, { a: 'AL-' + uid + '-' + (400 + idx) });
+      });
+    }
+  }
+  var MARKERS = [
+    { id: 'DT6701', x: 752, y: 518 },
+    { id: 'DT6702', x: 480, y: 445 },
+    { id: 'DT6705', x: 1017, y: 863 },
+    { id: 'DT6703', x: 1382, y: 301 },
+    { id: 'DT6704', x: 1496, y: 382 }
+  ];
+
+  /* ---------- state ---------- */
+  function freshState() {
+    var types = {};
+    TYPES.forEach(function (t) { types[t[0]] = true; });
+    var groups = {};
+    GROUP_ORDER.forEach(function (g) { groups[g] = false; });
+    return {
+      unit: 'DT6701', panelOpen: true, tab: 'normal', time: 'shift', types: types,
+      groups: groups, level: null, sort: { normal: 'latest', high: 'severe' },
+      menu: null, read: {}
+    };
+  }
+  var S = freshState();
+
+  /* ---------- helpers ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function agoText(m) {
+    if (m < 1) { return Math.max(1, Math.round(m * 60)) + ' seconds ago'; }
+    if (m < 60) { return Math.round(m) + ' minutes ago'; }
+    var h = Math.floor(m / 60);
+    return h + (h === 1 ? ' hour ago' : ' hours ago');
+  }
+  function timeDef() { return TIME.filter(function (t) { return t.id === S.time; })[0]; }
+  function allTypesOn() { return TYPES.every(function (t) { return S.types[t[0]]; }); }
+  function typeCount() { return TYPES.filter(function (t) { return S.types[t[0]]; }).length; }
+  function unitAlerts() { return ALERTS[S.unit] || []; }
+  function isUnread(al) { return !al.read && !S.read[al.a]; }
+
+  /* alerts that pass the time and type filter (tiles count these) */
+  function filtered() {
+    var max = timeDef().max;
+    return unitAlerts().filter(function (al) { return al.ago <= max && S.types[al.t]; });
+  }
+  function kindOf(list, kind) {
+    return list.filter(function (al) { return kind === 'high' ? al.lv : !al.lv; });
+  }
+  function visible(kind) {
+    var list = kindOf(filtered(), kind);
+    var activeGroups = GROUP_ORDER.filter(function (g) { return S.groups[g]; });
+    if (activeGroups.length > 0) {
+      list = list.filter(function (al) { return S.groups[TYPE[al.t].group]; });
+    }
+    if (kind === 'high' && S.level) { list = list.filter(function (al) { return al.lv === S.level; }); }
+    var mode = S.sort[kind];
+    return list.slice().sort(function (a, b) {
+      if (mode === 'latest') { return a.ago - b.ago; }
+      if (mode === 'duration') { return b.dur - a.dur || a.ago - b.ago; }
+      return (b.lv || 0) - (a.lv || 0) || b.dur - a.dur;
+    });
+  }
+  function sortLabel(kind) {
+    return SORTS[kind].filter(function (o) { return o[0] === S.sort[kind]; })[0][1];
+  }
+
+  /* ---------- render ---------- */
+  function renderUnits() {
+    $('ubody').innerHTML = UNITS.map(function (u) {
+      return '<div class="tr' + (u.id === S.unit ? ' sel' : '') + '" data-unit="' + u.id + '">' +
+        '<span class="' + u.cls + '">' + u.id + '</span><span class="' + u.cls.replace('st-off', 'st-off') + '" style="color:' + (u.cls === 'st-off' ? '#b4b8bf' : 'inherit') + '">' + u.health + '</span><span>' + u.status + '</span></div>';
+    }).join('');
+  }
+
+  function renderMarkers() {
+    $('markers').innerHTML = MARKERS.map(function (m) {
+      var sel = m.id === S.unit;
+      return '<div class="marker' + (sel ? ' selected' : '') + '" data-unit="' + m.id + '" style="left:' + m.x + 'px;top:' + m.y + 'px">' +
+        (sel ? '<div class="hl"></div><div class="ring"></div>' : '') +
+        '<div class="tag"><i class="dot"></i><span style="color:var(--green)">' + m.id + '</span></div><div class="truck"></div></div>';
+    }).join('');
+  }
+
+  function tilesHtml(list) {
+    var normal = S.tab === 'normal';
+    return '<div class="tiles">' + GROUP_ORDER.map(function (g) {
+      var inGroup = list.filter(function (al) { return TYPE[al.t].group === g; });
+      var on = S.groups[g] ? ' on' : '';
+      if (normal) {
+        return '<button class="tile simple' + on + '" data-group="' + g + '"><div class="gh"><b style="color:' + GROUPS[g].color + '">' + GROUPS[g].label + '</b></div><span class="num">' + inGroup.filter(function (al) { return !al.lv; }).length + '</span></button>';
+      }
+      var rows = [5, 4, 3, 2, 1].map(function (lv) {
+        var n = inGroup.filter(function (al) { return al.lv === lv; }).length;
+        return '<div class="lvrow' + (n ? '' : ' zero') + (S.level === lv && S.groups[g] ? ' on' : '') + '" data-level="' + lv + '" data-group="' + g + '"><span class="lvb lv' + lv + '">Lv' + lv + '</span><span class="n">' + n + '</span><span class="u">alerts</span></div>';
+      }).join('');
+      return '<div class="tile' + on + '"><div class="gh" data-group="' + g + '" style="cursor:pointer"><b style="color:' + GROUPS[g].color + '">' + GROUPS[g].label + '</b><i>(' + inGroup.length + ')</i></div><hr>' + rows + '</div>';
+    }).join('') + '</div>';
+  }
+
+  function rowsHtml(kind) {
+    var list = visible(kind);
+    if (!list.length) {
+      var none = unitAlerts().length === 0;
+      return '<div class="empty">' + (none ? 'No alerts for this unit.' : 'No ' + (kind === 'high' ? 'high' : 'normal') + ' alerts match the current filter.') + '</div>';
+    }
+    return list.map(function (al) {
+      var dot = '<span class="rd' + (isUnread(al) ? ' unread' : '') + '"></span>';
+      var name = '<span class="name" style="color:' + TYPE[al.t].color + '">' + esc(al.t) + '</span>';
+      if (kind === 'high') {
+        return '<div class="arow h" data-alert="' + al.a + '">' + dot + name + '<span class="v">' + al.dur + '</span><span class="m">min</span><span class="lvb lv' + al.lv + '" style="font-size:14px">Lv' + al.lv + '</span></div>';
+      }
+      return '<div class="arow n" data-alert="' + al.a + '">' + dot + name + '<span class="met">' + al.m + '<small>' + al.mu + '</small></span><span class="src">' + al.src + '</span><span class="ago">' + agoText(al.ago) + '</span></div>';
+    }).join('');
+  }
+
+  function renderPanel() {
+    var p = $('panel');
+    p.hidden = !S.panelOpen;
+    p.className = S.tab;
+    if (!S.panelOpen) { return; }
+    var kind = S.tab, base = filtered();
+    var unread = visible(kind).filter(isUnread).length;
+    var label = timeDef().label + ' | ' + (allTypesOn() ? 'All alert group' : typeCount() + ' of ' + TYPES.length + ' alert types');
+    var sortMenu = S.menu === 'sort' ? '<div class="smenu">' + SORTS[kind].map(function (o) {
+      return '<button class="mi" data-sort="' + o[0] + '"><span class="sp">' + (S.sort[kind] === o[0] ? ICON.check : '') + '</span>' + o[1] + '</button>';
+    }).join('') + '</div>' : '';
+
+    p.innerHTML =
+      '<div class="phead"><svg class="ico" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><span>Alerts in this unit</span><button class="xbtn" data-act="close" style="color:var(--p20)" aria-label="Close">' + ICON.x + '</button></div>' +
+      '<div class="banner">' + ICON.warn + '<div>Some alerts are filtered.<br>Currently visible on map: <b>Road, Waiting, Hanging</b>.</div></div>' +
+      '<div class="ptabs"><button data-tab="normal" class="' + (kind === 'normal' ? 'on' : '') + '">Normal alert</button><button data-tab="high" class="' + (kind === 'high' ? 'on' : '') + '">High alert</button></div>' +
+      '<div class="pbody">' + tilesHtml(base) +
+      '<div class="listgroup">' +
+      '<button class="bar' + (S.menu === 'time' || S.menu === 'type' ? ' open' : '') + '" data-act="filter"><span class="grow">' + label + '</span><span>(' + kindOf(base, kind).length + ')</span>' + ICON.filter + '</button>' +
+      '<button class="bar' + (S.menu === 'sort' ? ' open' : '') + '" data-act="sort"><span class="grow">Sort by:</span><span class="reg">' + sortLabel(kind) + '</span>' + ICON.swap + '</button>' +
+      '<div class="rows" id="rows">' + rowsHtml(kind) + '</div>' + sortMenu + '</div></div>' +
+      '<button class="markall" data-act="markall"' + (unread ? '' : ' disabled') + '>' + ICON.doneAll + 'Mark all as read</button>';
+  }
+
+  function renderStrip() {
+    var show = !!S.unit;
+    $('strip').style.display = show ? '' : 'none';
+    $('strip').innerHTML =
+      '<button class="' + (S.panelOpen ? 'on' : '') + '" data-act="toggle" aria-label="Alerts in this unit"><img src="Icons/notifications' + (S.panelOpen ? '_active' : '') + '.svg" alt=""></button>' +
+      '<button><img src="Icons/person.svg" alt=""></button><button><img src="Icons/assignment_turned_in.svg" alt=""></button>' +
+      '<button><img src="Icons/share_location.svg" alt=""></button><button><img src="Icons/query_stats.svg" alt=""></button>' +
+      '<button><svg class="ico ico24" viewBox="0 0 24 24" style="color:var(--p5)"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm4 12h-3v3h-2v-3H8v-2h3V8h2v3h3v2z"/></svg></button>' +
+      '<button><img src="Icons/chat.svg" alt=""></button>';
+  }
+
+  function renderDetail() {
+    var d = $('detail');
+    d.style.display = S.unit ? '' : 'none';
+    if (!S.unit) { return; }
+    d.innerHTML =
+      '<div class="dh">' + ICON.truck + '<span>' + S.unit + '</span><button class="xbtn" style="color:var(--p20)">' + ICON.locate + '</button><button class="xbtn" data-act="deselect" style="color:var(--p20)" aria-label="Close unit">' + ICON.x + '</button></div>' +
+      '<div class="cam"><div class="ch"><span>' + S.unit + ' - Front</span><a>htt…</a><span class="sp"></span><span class="lv"><i></i>Live</span>' + ICON.expand + '</div><div class="feed"></div></div>' +
+      '<div class="kv"><div class="hd"><span>Actual last<br>update:</span><em>2026-01-12 02:41:53 ' + ICON.info + '</em></div>' +
+      row('Model:', 'Komatsu HD785-7') + row('Equipment type:', 'Truck') + row('Activity:', 'Hauling') +
+      row('Reason:', '<span style="color:var(--green)">Production</span>') + row('CN:', S.unit + '-0593') + row('Location:', 'DPS_2017') +
+      row('Next location:', 'DJKT_MUD_HRLW_RL<br>+126') + row('Fuel consumption:', '43.58 &nbsp;L/H') + '</div>' +
+      '<div class="kv"><div class="hd"><span>Visual last<br>update:</span><em>2026-01-12 02:41:53 ' + ICON.info + '</em></div>' +
+      row('Speed:', '16 &nbsp;km/hr') + row('Average speed empty hauling:', '16 &nbsp;km/hr') + row('Average speed loaded hauling:', '16 &nbsp;km/hr') + '</div>' +
+      '<div class="op"><span>Operator:</span><span>HAJAR SIDIK</span></div>';
+  }
+  function row(k, v) { return '<div class="r"><span>' + k + '</span><b>' + v + '</b></div>'; }
+
+  function renderMenus() {
+    var tm = $('timeMenu'), ym = $('typeMenu');
+    var open = S.menu === 'time' || S.menu === 'type';
+    tm.hidden = !open || !S.panelOpen;
+    ym.hidden = S.menu !== 'type' || !S.panelOpen;
+    if (!tm.hidden) {
+      tm.innerHTML = TIME.map(function (t) {
+        return '<button class="mi" data-time="' + t.id + '"><span class="sp">' + (S.time === t.id ? ICON.check : '') + '</span>' + t.label + '</button>';
+      }).join('') + '<button class="typebtn' + (S.menu === 'type' ? ' open' : '') + '" data-act="typemenu"><span style="flex:1;text-align:left">Alert type</span>' + ICON.chev + '</button>';
+    }
+    if (!ym.hidden) {
+      var all = allTypesOn();
+      ym.innerHTML = '<button class="mi" data-type="__all">' + (all ? ICON.cbOn : ICON.cbOff) + '<span style="color:#fff">Select all/ unselect all alert type</span></button>' +
+        TYPES.map(function (t) {
+          return '<button class="mi" data-type="' + esc(t[0]) + '">' + (S.types[t[0]] ? ICON.cbOn : ICON.cbOff) + '<span style="color:' + t[2] + '">' + esc(t[0]) + '</span></button>';
+        }).join('');
+    }
+  }
+
+  function render() {
+    renderUnits(); renderMarkers(); renderPanel(); renderStrip(); renderDetail(); renderMenus();
+  }
+
+  /* ---------- events ---------- */
+  function closest(el, sel) { return el.closest ? el.closest(sel) : null; }
+  function selectUnit(id) {
+    var groups = {};
+    GROUP_ORDER.forEach(function (g) { groups[g] = false; });
+    S.unit = id; S.panelOpen = true; S.menu = null; S.groups = groups; S.level = null; render();
+  }
+
+  $('stage').addEventListener('click', function (e) {
+    var t = e.target, hit;
+
+    if ((hit = closest(t, '[data-unit]'))) { selectUnit(hit.getAttribute('data-unit')); return; }
+    if ((hit = closest(t, '[data-time]'))) {
+      var groups = {};
+      GROUP_ORDER.forEach(function (g) { groups[g] = false; });
+      S.time = hit.getAttribute('data-time'); S.menu = null; S.groups = groups; S.level = null; render(); return;
+    }
+    if ((hit = closest(t, '[data-type]'))) {
+      var key = hit.getAttribute('data-type');
+      if (key === '__all') { var on = !allTypesOn(); TYPES.forEach(function (x) { S.types[x[0]] = on; }); }
+      else { S.types[key] = !S.types[key]; }
+      render(); return;
+    }
+    if ((hit = closest(t, '[data-sort]'))) { S.sort[S.tab] = hit.getAttribute('data-sort'); S.menu = null; render(); return; }
+    if ((hit = closest(t, '[data-tab]'))) {
+      var groups = {};
+      GROUP_ORDER.forEach(function (g) { groups[g] = false; });
+      S.tab = hit.getAttribute('data-tab'); S.menu = null; S.groups = groups; S.level = null; render(); return;
+    }
+    if ((hit = closest(t, '[data-level]'))) {
+      var lv = +hit.getAttribute('data-level'), g = hit.getAttribute('data-group');
+      var same = S.level === lv && S.groups[g];
+      S.level = same ? null : lv;
+      if (same) {
+        S.groups[g] = false;
+      } else {
+        S.groups[g] = true;
+      }
+      render(); return;
+    }
+    if ((hit = closest(t, '[data-group]'))) {
+      var gg = hit.getAttribute('data-group');
+      S.groups[gg] = !S.groups[gg];
+      S.level = null;
+      render(); return;
+    }
+    if ((hit = closest(t, '[data-act]'))) {
+      var act = hit.getAttribute('data-act');
+      if (act === 'close') { S.panelOpen = false; S.menu = null; }
+      else if (act === 'toggle') { S.panelOpen = !S.panelOpen; S.menu = null; }
+      else if (act === 'deselect') { S.unit = null; S.panelOpen = false; S.menu = null; }
+      else if (act === 'filter') { S.menu = (S.menu === 'time' || S.menu === 'type') ? null : 'time'; }
+      else if (act === 'typemenu') { S.menu = S.menu === 'type' ? 'time' : 'type'; }
+      else if (act === 'sort') { S.menu = S.menu === 'sort' ? null : 'sort'; }
+      else if (act === 'markall') { visible(S.tab).forEach(function (al) { S.read[al.a] = true; }); }
+      render(); return;
+    }
+    if (S.menu && !closest(t, '.pop')) { S.menu = null; render(); }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.menu) { S.menu = null; render(); } });
+  $('reset').addEventListener('click', function () { S = freshState(); render(); });
+
+  /* ---------- scale stage to the window ---------- */
+  function fit() {
+    var k = Math.min(innerWidth / 1920, innerHeight / 1080), st = $('stage');
+    st.style.transform = 'translate(' + ((innerWidth - 1920 * k) / 2) + 'px,' + ((innerHeight - 1080 * k) / 2) + 'px) scale(' + k + ')';
+  }
+  addEventListener('resize', fit);
+  fit(); render();
+})();
+</script>
+</body>
+</html>

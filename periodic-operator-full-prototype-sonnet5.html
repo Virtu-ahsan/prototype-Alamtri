@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlamTri geo - Operator data (prototype, Sonnet 5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Primitive */
+    --n0: #FFFFFF; --n80: #414349; --n90: #393B40; --n95: #2C2C2C; --n100: #1E1F22; --n110: #141414; --canvas: #0B0B0C; --surface: #141518;
+    --p5: #EDF4FC; --p20: #3F89DE; --p60: #184E8C;
+    --yellow: #FEDB5D; --orange: #EE9222; --red: #FE7274; --green: #32D74B; --cyan: #14E0FF; --live: #FE2023; --muted: #808790;
+    /* Semantic */
+    --c-card: var(--n100); --c-card-inset: var(--n110); --c-border: var(--n80); --c-border-soft: var(--n95);
+    --c-sp1: var(--yellow); --c-sp2: var(--orange); --c-sp3: var(--red);
+    --c-toilet: #FEDB5D; --c-sholat: #D4AF37; --c-ftg: #EE9222; --c-incident: #FE5D5F;
+    /* Component */
+    --r-card: 8px; --r-ctl: 4px; --h-ctl: 40px; --pad: 12px; --gap: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--canvas); color: #fff; font: 14px/1.4 Inter, Roboto, system-ui, sans-serif; }
+  button, select { font: inherit; color: inherit; }
+  button { border: 0; background: none; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--p20); outline-offset: 2px; }
+  .ico { width: 20px; height: 20px; fill: currentColor; flex: none; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-thumb { background: var(--n80); border-radius: 3px; }
+
+  #app { min-width: 1280px; min-height: 100vh; display: grid; grid-template-rows: 70px 1fr; background: var(--surface); }
+
+  /* Header */
+  header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--n110); border-bottom: 1px solid var(--c-border); position: sticky; top: 0; z-index: 50; }
+  .brand { display: flex; align-items: baseline; gap: 2px; font-weight: 700; font-size: 22px; letter-spacing: -.5px; }
+  .brand small { color: var(--p20); font-size: 11px; font-weight: 600; }
+  .site { margin-left: 24px; color: var(--p5); font-weight: 500; }
+  .seg { display: flex; gap: 8px; padding: 4px; background: var(--n100); border-radius: 8px; }
+  .seg button { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--r-ctl); color: #fff; }
+  .seg button.on { background: var(--n95); color: var(--p20); font-weight: 600; }
+  .seg .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 0 rgba(254,32,35,.6); animation: pulse 2s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(254,32,35,0); } 100% { box-shadow: 0 0 0 0 rgba(254,32,35,0); } }
+  .hright { display: flex; align-items: center; gap: 12px; }
+  .sq { width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--r-ctl); background: var(--n80); color: var(--p5); position: relative; }
+  .sq:hover, .pill:hover { background: #4d5057; }
+  .sq .badge { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--live); }
+  .pill { display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border-radius: var(--r-ctl); background: var(--n80); color: var(--p5); font-weight: 600; }
+  #clock { color: var(--p5); font-size: 13px; white-space: nowrap; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--p5); border: 2px solid var(--p20); color: var(--p60); font: 700 14px Roboto, sans-serif; display: grid; place-items: center; }
+
+  /* Body */
+  #body { display: grid; grid-template-columns: 158px 1fr; min-height: 0; }
+  nav { background: var(--n110); border-right: 1px solid var(--c-border-soft); padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; align-self: start; position: sticky; top: 70px; height: calc(100vh - 70px); }
+  nav a { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: var(--r-ctl); background: var(--n80); color: var(--p5); font-size: 14px; font-weight: 500; text-decoration: none; }
+  nav a:hover { background: #4d5057; }
+  nav a.on { background: none; color: var(--p20); font-weight: 600; }
+  nav a.dash { background: none; color: var(--muted); margin-bottom: 4px; }
+  main { padding: 12px; display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+
+  /* Controls */
+  .ctl { height: var(--h-ctl); border-radius: var(--r-ctl); background: var(--n80); color: var(--p5); font-weight: 600; padding: 0 10px; border: 0; }
+  select.ctl { appearance: none; padding-right: 30px; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%23EDF4FC'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 6px center; }
+  select.ctl:hover { background-color: #4d5057; }
+  select.sm { height: 32px; font-size: 13px; }
+  .btn-primary { display: flex; align-items: center; gap: 8px; height: var(--h-ctl); padding: 0 16px; border-radius: var(--r-ctl); background: var(--p20); color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: #2375D1; }
+  .btn-ghost { display: flex; align-items: center; gap: 6px; height: var(--h-ctl); padding: 0 12px; border-radius: var(--r-ctl); color: var(--p5); font-weight: 600; }
+  .btn-ghost:hover { background: var(--n80); }
+  .chk { display: flex; align-items: center; gap: 8px; color: var(--p20); font-weight: 500; cursor: pointer; user-select: none; }
+  .chk input { width: 16px; height: 16px; accent-color: var(--p20); cursor: pointer; }
+
+  .topbar { display: flex; align-items: center; gap: 16px; padding: 0 12px; height: 56px; background: var(--c-card); border-radius: var(--r-card); }
+  .topbar h1 { font-size: 16px; font-weight: 600; margin-right: 8px; }
+  .topbar .spacer { flex: 1; }
+
+  /* Section */
+  section.panel { background: var(--c-card); border-radius: var(--r-card); padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  .sec-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 40px; }
+  .sec-head h2 { font-size: 16px; font-weight: 600; text-align: center; }
+  .sec-head .l { justify-self: start; } .sec-head .r { justify-self: end; }
+  .chev { transition: transform .15s; } section.collapsed .chev { transform: rotate(-90deg); }
+  section.collapsed .sec-body { display: none; }
+
+  .sec-body { display: grid; gap: var(--gap); }
+  .layout-a { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .layout-b { grid-template-columns: minmax(0, 2.8fr) minmax(0, 1fr); }
+  .stack { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+  .card { background: var(--c-card-inset); border-radius: var(--r-card); padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); min-width: 0; min-height: 0; }
+  .card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; }
+  .card-h h3 { font-size: 14px; font-weight: 500; color: var(--p5); }
+
+  /* Charts */
+  .chart { position: relative; height: 240px; }
+  .chart.tall { height: 250px; }
+  .chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .legend { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; font-size: 12px; }
+  .legend button { display: flex; align-items: center; gap: 6px; color: #fff; padding: 2px 4px; border-radius: 3px; }
+  .legend button.off { opacity: .4; text-decoration: line-through; }
+  .legend i { width: 18px; border-top: 2px dashed; }
+  .axis text { fill: #a8adb5; font: 11px Roboto, sans-serif; }
+  .grid line { stroke: #2f3136; }
+  .tip { position: absolute; pointer-events: none; background: rgba(43,44,48,.97); border: 1px solid var(--n90); border-radius: 6px; padding: 8px 10px; font-size: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.5); z-index: 10; display: none; white-space: nowrap; }
+  .tip b.t { display: block; margin-bottom: 4px; font-weight: 600; }
+  .tip .row { display: flex; align-items: center; gap: 8px; line-height: 1.7; }
+  .tip .row span.n { flex: 1; } .tip .row span.v { font-weight: 700; margin-left: 12px; }
+  .tip .row i { width: 14px; border-top: 2px dashed; }
+
+  /* Pie card */
+  .pie-wrap { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(260px, 1fr); gap: var(--gap); align-items: center; }
+  .pie { position: relative; height: 240px; display: grid; place-items: center; }
+  .pie svg { width: 240px; height: 240px; overflow: visible; }
+  .pie path { cursor: pointer; transition: transform .12s, filter .12s; stroke: var(--n110); stroke-width: 1; }
+  .pie path:hover, .pie path.hl { transform: scale(1.03); transform-origin: 120px 120px; filter: brightness(1.12); }
+  .pie text { font: 500 12px Inter, sans-serif; fill: #1a1a1a; pointer-events: none; }
+  .rank { background: var(--n100); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .rank-h { display: flex; align-items: center; justify-content: space-between; height: 32px; padding: 0 12px; background: var(--n80); border-radius: var(--r-ctl); color: var(--p5); font-weight: 600; font-size: 13px; width: 100%; }
+  .rank-h:hover { background: #4d5057; }
+  .rank-row { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border-radius: var(--r-ctl); cursor: default; }
+  .rank-row:hover, .rank-row.hl { background: var(--n95); }
+  .rank-row .no { width: 16px; height: 16px; border: 1px solid currentColor; border-radius: 3px; font-size: 10px; display: grid; place-items: center; }
+  .rank-row .nm { flex: 1; font-weight: 600; }
+  .rank-row .pc { color: var(--muted); } .rank-row .ct { color: #fff; font-weight: 700; min-width: 40px; text-align: right; }
+  .rank-row .un { color: var(--muted); font-size: 12px; min-width: 52px; }
+
+  /* Tables */
+  .tbl-wrap { overflow: auto; border-radius: 6px; max-height: 560px; flex: 1; min-height: 0; }
+  .tbl-wrap.short { max-height: 290px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th { position: sticky; top: 0; background: var(--n100); border: 1px solid var(--n80); color: var(--p5); font-weight: 600; font-size: 13px; padding: 0 8px; height: 44px; cursor: pointer; user-select: none; z-index: 1; }
+  thead th:first-child { text-align: left; }
+  thead th .si { display: inline-flex; vertical-align: middle; margin-left: 4px; opacity: .6; } thead th.s .si { opacity: 1; color: var(--p20); }
+  tbody td { height: 40px; padding: 0 12px; border-bottom: 1px solid var(--n95); text-align: center; font-variant-numeric: tabular-nums; }
+  tbody td:first-child { text-align: left; font-weight: 500; white-space: nowrap; }
+  tbody tr:hover { background: var(--n95); }
+  td.c1 { color: var(--c-sp1); } td.c2 { color: var(--c-sp2); } td.c3 { color: var(--c-sp3); }
+  td.t { color: var(--c-toilet); } td.s { color: var(--c-sholat); } td.f { color: var(--c-ftg); } td.i { color: var(--c-incident); }
+  td.prod { color: #fff; } td.prod small { color: var(--muted); margin-left: 4px; }
+  .vis { width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
+  .dotc { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; }
+  .hint { color: var(--orange); font-size: 12px; display: none; } .hint.on { display: block; }
+  .tabs { display: flex; gap: 8px; padding: 4px; background: var(--n110); border-radius: 8px; width: max-content; }
+  .tabs button { height: 36px; padding: 0 28px; border-radius: var(--r-ctl); color: var(--p20); font-weight: 600; }
+  .tabs button.on { background: var(--n95); }
+  .toolbar { display: flex; align-items: center; gap: 12px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--n90); border: 1px solid var(--n80); padding: 10px 16px; border-radius: 6px; opacity: 0; transition: .2s; pointer-events: none; z-index: 100; }
+  .toast.on { opacity: 1; transform: translateX(-50%); }
+  @media (max-width: 1500px) { .layout-a, .layout-b { grid-template-columns: 1fr; } .tbl-wrap { max-height: 360px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div style="display:flex;align-items:center">
+      <div class="brand">AlamTri<small>geo</small></div>
+      <div class="site">Adaro Indonesia</div>
+    </div>
+    <div class="seg" role="group" aria-label="Mode">
+      <button id="m-play"><svg class="ico" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>Playback</button>
+      <button id="m-live" class="on"><span class="dot"></span>Live mode</button>
+    </div>
+    <div class="hright">
+      <button class="sq" title="Connectivity"><svg class="ico" viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg></button>
+      <button class="sq" title="Warnings"><svg class="ico" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></button>
+      <button class="sq" title="Notifications"><svg class="ico" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 002 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4a1.5 1.5 0 00-3 0v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><span class="badge"></span></button>
+      <button class="pill">Tools <svg class="ico" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></button>
+      <div id="clock"></div>
+      <div class="avatar">PS</div>
+    </div>
+  </header>
+
+  <div id="body">
+    <nav aria-label="Primary">
+      <a href="#" class="dash"><svg class="ico" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</a>
+      <a href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>All Site</a>
+      <a href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M20 8h-3V4H3a2 2 0 00-2 2v11h2a3 3 0 006 0h6a3 3 0 006 0h2v-5l-3-4zM6 18.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg>Unit</a>
+      <a href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg>Camera</a>
+      <a href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M17 16l-4-4V8.82A3 3 0 0015 6a3 3 0 00-6 0 3 3 0 002 2.82V12l-4 4H3v5h5v-3.05l4-4.2 4 4.2V21h5v-5h-4z"/></svg>Device</a>
+      <a href="#" class="on" aria-current="page"><svg class="ico" viewBox="0 0 24 24"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Operator</a>
+      <a href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M11 2h2v5h-2zm0 7.5h2v5h-2zM11 17h2v5h-2zM7 2h2v20H7zm8 0h2v20h-2z"/></svg>Road</a>
+    </nav>
+
+    <main>
+      <div class="topbar">
+        <h1>Operator data</h1>
+        <select class="ctl" id="g-period" aria-label="Global period"></select>
+        <label class="chk"><input type="checkbox" id="g-sync" checked> Apply filter to all card?</label>
+        <span class="spacer"></span>
+        <button class="btn-primary" id="export-all"><span>Export</span><svg class="ico" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
+      </div>
+
+      <!-- Section 1 -->
+      <section class="panel" id="sec-v">
+        <div class="sec-head">
+          <button class="btn-ghost l" data-collapse aria-label="Collapse section"><svg class="ico chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>Collapse</button>
+          <h2>History pelanggaran</h2>
+          <button class="btn-ghost r" data-export="v">Export <svg class="ico" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
+        </div>
+        <div class="sec-body layout-a">
+          <div class="stack">
+            <div class="card">
+              <div class="card-h"><h3>History pelanggaran</h3><select class="ctl sm" data-period="v1"></select></div>
+              <div class="chart" id="v-line"></div>
+              <div class="legend" id="v-legend"></div>
+            </div>
+            <div class="card">
+              <div class="card-h"><h3>Violation type</h3><select class="ctl sm" data-period="v2"></select></div>
+              <div class="pie-wrap">
+                <div class="pie" id="v-pie"></div>
+                <div class="rank" id="v-rank"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3>Pelanggaran by operator</h3><select class="ctl sm" data-period="v3"></select></div>
+            <div class="tbl-wrap"><table id="v-table"></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="panel" id="sec-a">
+        <div class="sec-head">
+          <button class="btn-ghost l" data-collapse aria-label="Collapse section"><svg class="ico chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>Collapse</button>
+          <h2>Detected alerts</h2>
+          <button class="btn-ghost r" data-export="a">Export <svg class="ico" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
+        </div>
+        <div class="sec-body layout-a">
+          <div class="stack">
+            <div class="card">
+              <div class="card-h"><h3>Alert history</h3><select class="ctl sm" data-period="a1"></select></div>
+              <div class="chart" id="a-line"></div>
+              <div class="legend" id="a-legend"></div>
+            </div>
+            <div class="card">
+              <div class="card-h"><h3>Violation type</h3><select class="ctl sm" data-period="a2"></select></div>
+              <div class="pie-wrap">
+                <div class="pie" id="a-pie"></div>
+                <div class="rank" id="a-rank"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3>Alerts by operator</h3><select class="ctl sm" data-period="a3"></select></div>
+            <div class="tbl-wrap"><table id="a-table"></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3 -->
+      <section class="panel" id="sec-p">
+        <div class="sec-head">
+          <button class="btn-ghost l" data-collapse aria-label="Collapse section"><svg class="ico chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>Collapse</button>
+          <h2>Operator performance</h2>
+          <button class="btn-ghost r" data-export="p">Export <svg class="ico" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
+        </div>
+        <div class="toolbar">
+          <select class="ctl sm" id="p-day" aria-label="Day"><option value="0">Today</option><option value="1">Yesterday</option><option value="2">2 days ago</option></select>
+          <div class="tabs" id="p-shift" role="tablist"><button data-s="all" class="on">All shift</button><button data-s="day">Day shift</button><button data-s="night">Night shift</button></div>
+          <span class="hint" id="p-hint">More than 10 series reduce readability. Hide some operators in the table.</span>
+        </div>
+        <div class="sec-body layout-b">
+          <div class="card">
+            <div class="card-h"><h3>Production (BCM/hrs)</h3><span style="color:var(--muted);font-size:12px">06.30 – 06.30 · GMT+8</span></div>
+            <div class="chart tall" id="p-line"></div>
+          </div>
+          <div class="card">
+            <div class="tbl-wrap short"><table id="p-table"></table></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ---------- Data layer (deterministic fixtures, one source of truth) ---------- */
+const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const NAMES = ['Teguh Pribadi Asty','Ika Christy Barus','Isman Faris','Fahhry Muhardhany','Ahmad Hermawan','Ken Tree Noviandri','Rony Seru Wihardjo','Rizki','Bobby Wikarsa','Andrew Marcelino','Novie Wiyanto','Dedi Kurniawan','Slamet Riyadi','Yusuf Pratama','Hendra Gunawan','Agus Salim','Budi Santoso','Eko Prasetyo','Joko Widodo Putra','Lukman Hakim','Rudi Hartono','Wahyu Nugroho','Dian Permata','Fajar Ramadhan'];
+const DAYS = 26;
+const PERIODS = { mtd: { label: 'MTD', from: 0, to: 26 }, d14: { label: 'Last 14 days', from: 12, to: 26 }, d7: { label: 'Last 7 days', from: 19, to: 26 } };
+const SP = [{ k: 'sp1', n: 'Surat Peringatan 1', c: 'var(--c-sp1)', hex: '#FEDB5D', cls: 'c1' }, { k: 'sp2', n: 'Surat Peringatan 2', c: 'var(--c-sp2)', hex: '#EE9222', cls: 'c2' }, { k: 'sp3', n: 'Surat Peringatan 3', c: 'var(--c-sp3)', hex: '#FE7274', cls: 'c3' }];
+const SEV = [{ k: 'sp1', n: 'Ringan', hex: '#FEDB5D' }, { k: 'sp2', n: 'Sedang', hex: '#EE9222' }, { k: 'sp3', n: 'Berat', hex: '#FE7274' }];
+const AL = [{ k: 'toilet', n: 'States-toilet', hex: '#FEDB5D', cls: 't' }, { k: 'sholat', n: 'States-sholat', hex: '#D4AF37', cls: 's' }, { k: 'ftg', n: 'Ftg. monitoring', hex: '#EE9222', cls: 'f' }, { k: 'incident', n: 'Incident', hex: '#FE5D5F', cls: 'i' }];
+const LINE_COLORS = ['#3F89DE', '#32D74B', '#FEDB5D', '#EE9222', '#14E0FF', '#B388FF', '#FE7274', '#F06292', '#9CCC65', '#4DD0E1'];
+
+// events[opIdx][metric][day] -> small integer counts
+const events = NAMES.map((_, o) => {
+  const r = rng(1000 + o * 17), w = .4 + r() * 1.4, out = {};
+  [...SP, ...AL].forEach((m, mi) => {
+    const mw = [1.1, .6, .3, 1, .8, .7, .25][mi];
+    out[m.k] = Array.from({ length: DAYS }, () => Math.floor(r() * r() * 3.4 * w * mw * 1.6));
+  });
+  return out;
+});
+const sumRange = (arr, p) => arr.slice(p.from, p.to).reduce((a, b) => a + b, 0);
+const dailyTotals = (key, p) => Array.from({ length: p.to - p.from }, (_, d) => events.reduce((a, e) => a + e[key][p.from + d], 0));
+const perOperator = (keys, p) => NAMES.map((name, o) => Object.assign({ name }, ...keys.map(k => ({ [k]: sumRange(events[o][k], p) }))));
+
+// Production curves: 26 slots 06.30 → 06.30
+const SLOTS = ['06.30', ...Array.from({ length: 24 }, (_, i) => String((7 + i) % 24).padStart(2, '0') + '.00'), '06.30'];
+const slotTitle = i => i >= SLOTS.length - 1 ? SLOTS[i] : `${SLOTS[i]} - ${SLOTS[i + 1]}`;
+const SHIFT = { all: [0, 25], day: [0, 12], night: [12, 25] };
+const perfCurves = day => NAMES.map((_, o) => {
+  const r = rng(5000 + o * 31 + day * 977), base = 6 + r() * 7, ph = r() * 6;
+  return SLOTS.map((_, i) => Math.max(1, +(base + Math.sin(i / 2.6 + ph) * 1.8 + (r() - .5) * 2.4 + (i === 18 && o % 3 === 0 ? 4 : 0)).toFixed(1)));
+});
+
+/* ---------- State ---------- */
+const state = {
+  sync: true, global: 'mtd',
+  period: { v1: 'mtd', v2: 'mtd', v3: 'mtd', a1: 'mtd', a2: 'mtd', a3: 'mtd' },
+  hidden: { v: new Set(), a: new Set() },
+  pieDir: { v: -1, a: -1 },
+  sort: { v: { k: 'name', d: 1 }, a: { k: 'name', d: 1 }, p: { k: 'prod', d: -1 } },
+  shift: 'all', day: 0,
+  vis: new Set(),
+  hl: { v: null, a: null }
+};
+const $ = s => document.querySelector(s);
+const fmt = n => n.toLocaleString('id-ID');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const SORT_ICON = '<svg class="ico" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"/></svg>';
+
+/* ---------- Charts ---------- */
+const niceMax = v => { const s = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500]; const t = Math.max(v, 1) * 1.1; return s.find(x => x >= t) || Math.ceil(t / 100) * 100; };
+function lineChart(el, { cats, series, title, yTitle, maxHint }) {
+  const W = el.clientWidth || 600, H = el.clientHeight || 240, m = { l: 48, r: 12, t: 22, b: 30 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, n = cats.length;
+  const vis = series.filter(s => !s.hidden);
+  const yMax = maxHint || niceMax(Math.max(0, ...vis.flatMap(s => s.data.filter(v => v != null))));
+  const x = i => m.l + (n === 1 ? iw / 2 : iw * i / (n - 1)), y = v => m.t + ih - ih * v / yMax, step = n > 1 ? iw / (n - 1) : iw;
+  const skip = Math.ceil(n / Math.max(4, Math.floor(iw / 38)));
+  let g = '<g class="grid">', a = '<g class="axis">';
+  for (let i = 0; i <= 5; i++) { const v = yMax * i / 5, yy = y(v); g += `<line x1="${m.l}" x2="${W - m.r}" y1="${yy}" y2="${yy}"/>`; a += `<text x="${m.l - 8}" y="${yy + 4}" text-anchor="end">${+v.toFixed(1)}</text>`; }
+  a += `<text x="${m.l - 8}" y="${m.t - 10}" text-anchor="end">${yTitle}</text>`;
+  cats.forEach((c, i) => { if (i % skip === 0 || i === n - 1) a += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${c}</text>`; });
+  g += '</g>'; a += '</g>';
+  const paths = vis.map(s => {
+    let d = '', pen = false;
+    s.data.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`; pen = true; });
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" ${s.dash ? 'stroke-dasharray="4 3"' : ''}/>`;
+  }).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g>${g}${a}</g><rect id="band" y="${m.t}" height="${ih}" width="${Math.min(step, 46)}" fill="rgba(255,255,255,.09)" style="display:none"/>${paths}<g id="dots"></g><rect class="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/></svg><div class="tip"></div>`;
+  const svg = el.firstElementChild, tip = el.lastElementChild, band = svg.querySelector('#band'), dots = svg.querySelector('#dots');
+  const hide = () => { tip.style.display = 'none'; band.style.display = 'none'; dots.innerHTML = ''; };
+  svg.querySelector('.hit').addEventListener('mousemove', e => {
+    const box = svg.getBoundingClientRect(), mx = (e.clientX - box.left) * (W / box.width);
+    const i = Math.max(0, Math.min(n - 1, Math.round((mx - m.l) / (step || 1))));
+    const rows = vis.filter(s => s.data[i] != null);
+    band.setAttribute('x', x(i) - Math.min(step, 46) / 2); band.style.display = '';
+    dots.innerHTML = rows.map(s => `<circle cx="${x(i)}" cy="${y(s.data[i])}" r="3.5" fill="${s.color}" stroke="#141414" stroke-width="1.5"/>`).join('');
+    tip.innerHTML = `<b class="t">${title(i)}</b>` + rows.map(s => `<div class="row"><i style="border-color:${s.color}"></i><span class="n" style="color:${s.color}">${esc(s.name)}</span><span class="v">${s.data[i]}</span></div>`).join('');
+    tip.style.display = 'block';
+    const tw = tip.offsetWidth, px = x(i) * box.width / W, left = px + 14 + tw > box.width ? px - tw - 14 : px + 14;
+    tip.style.left = Math.max(0, left) + 'px'; tip.style.top = '8px';
+  });
+  svg.querySelector('.hit').addEventListener('mouseleave', hide);
+}
+
+function pie(el, slices, onHover) {
+  const total = slices.reduce((a, s) => a + s.v, 0) || 1, R = 112, C = 120; let ang = -Math.PI / 2, out = '';
+  slices.forEach((s, i) => {
+    const f = s.v / total, a2 = ang + f * 2 * Math.PI, big = f > .5 ? 1 : 0;
+    const p = (a, r) => [C + r * Math.cos(a), C + r * Math.sin(a)];
+    const [x1, y1] = p(ang, R), [x2, y2] = p(a2, R), [lx, ly] = p((ang + a2) / 2, R * .62);
+    out += `<path data-i="${i}" fill="${s.hex}" d="M${C},${C}L${x1},${y1}A${R},${R} 0 ${big} 1 ${x2},${y2}Z"/><text x="${lx}" y="${ly}" text-anchor="middle">${esc(s.n)}</text>`;
+    ang = a2;
+  });
+  el.innerHTML = `<svg viewBox="0 0 240 240">${out}</svg><div class="tip"></div>`;
+  const tip = el.lastElementChild;
+  el.querySelectorAll('path').forEach(pth => {
+    const s = slices[pth.dataset.i];
+    pth.addEventListener('mousemove', e => {
+      const b = el.getBoundingClientRect();
+      tip.innerHTML = `<div class="row"><span class="n" style="color:${s.hex}">${esc(s.full || s.n)}</span><span class="v">${fmt(s.v)} (${(s.v / total * 100).toLocaleString('id-ID', { maximumFractionDigits: 2 })}%)</span></div>`;
+      tip.style.display = 'block'; tip.style.left = Math.min(e.clientX - b.left + 12, b.width - tip.offsetWidth) + 'px'; tip.style.top = (e.clientY - b.top - 40) + 'px';
+      onHover(s.k);
+    });
+    pth.addEventListener('mouseleave', () => { tip.style.display = 'none'; onHover(null); });
+  });
+}
+
+/* ---------- Tables ---------- */
+function table(el, key, cols, rows, extra) {
+  const st = state.sort[key];
+  rows = [...rows].sort((a, b) => (typeof a[st.k] === 'string' ? a[st.k].localeCompare(b[st.k]) : a[st.k] - b[st.k]) * st.d);
+  el.innerHTML = `<thead><tr>${cols.map(c => `<th data-k="${c.k}" class="${st.k === c.k ? 's' : ''}" ${c.k === 'vis' ? 'style="cursor:default;width:90px"' : ''} aria-sort="${st.k === c.k ? (st.d > 0 ? 'ascending' : 'descending') : 'none'}">${c.l}${c.k === 'name' || c.k === 'vis' ? '' : `<span class="si">${SORT_ICON}</span>`}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => c.r(r)).join('')}</tr>`).join('')}</tbody>`;
+  el.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.k; if (k === 'vis') return;
+    state.sort[key] = { k, d: st.k === k ? -st.d : (k === 'name' ? 1 : -1) }; refreshTable[key]();
+  }));
+  if (extra) extra(el);
+}
+
+/* ---------- Section renderers ---------- */
+function rankList(el, key, slices, unit, label) {
+  const total = slices.reduce((a, s) => a + s.v, 0) || 1, d = state.pieDir[key];
+  const sorted = [...slices].sort((a, b) => (a.v - b.v) * d);
+  el.innerHTML = `<button class="rank-h" data-dir>Sort by: <span>${label} ${d < 0 ? '▼' : '▲'}</span></button>` + sorted.map((s, i) => `<div class="rank-row ${state.hl[key] === s.k ? 'hl' : ''}" data-k="${s.k}" style="color:${s.hex}"><span class="no">${i + 1}</span><span class="nm">${esc(s.n)}</span><span class="pc">${Math.round(s.v / total * 100)} %</span><span class="ct" style="color:#fff">${fmt(s.v)}</span><span class="un">${unit}</span></div>`).join('');
+  el.querySelector('[data-dir]').onclick = () => { state.pieDir[key] *= -1; refreshPie[key](); };
+  el.querySelectorAll('.rank-row').forEach(r => { r.onmouseenter = () => hl(key, r.dataset.k); r.onmouseleave = () => hl(key, null); });
+}
+function hl(key, k) {
+  state.hl[key] = k;
+  document.querySelectorAll(`#${key}-rank .rank-row`).forEach(r => r.classList.toggle('hl', r.dataset.k === k));
+  document.querySelectorAll(`#${key}-pie path`).forEach((p, i) => p.classList.toggle('hl', (key === 'v' ? SEV : AL)[i].k === k));
+}
+
+function renderViolations(only) {
+  const pl = PERIODS[state.period.v1], pp = PERIODS[state.period.v2], pt = PERIODS[state.period.v3];
+  if (!only || only === 'line') {
+    lineChart($('#v-line'), { cats: Array.from({ length: pl.to - pl.from }, (_, i) => pl.from + i + 1), yTitle: 'Count', title: i => `Day ${pl.from + i + 1}`, series: SP.map(s => ({ name: s.n, color: s.hex, dash: true, hidden: state.hidden.v.has(s.k), data: dailyTotals(s.k, pl) })) });
+    $('#v-legend').innerHTML = SP.map(s => `<button data-k="${s.k}" class="${state.hidden.v.has(s.k) ? 'off' : ''}"><i style="border-color:${s.hex}"></i>${s.n}</button>`).join('');
+    $('#v-legend').querySelectorAll('button').forEach(b => b.onclick = () => { toggle(state.hidden.v, b.dataset.k); renderViolations('line'); });
+  }
+  if (!only || only === 'pie') {
+    const slices = SEV.map((s, i) => ({ k: s.k, n: s.n, full: SP[i].n, hex: s.hex, v: events.reduce((a, e) => a + sumRange(e[s.k], pp), 0) }));
+    pie($('#v-pie'), slices, k => hl('v', k)); rankList($('#v-rank'), 'v', slices, 'Violation', 'violation count');
+  }
+  if (!only || only === 'table') {
+    const rows = perOperator(SP.map(s => s.k), pt);
+    table($('#v-table'), 'v', [{ k: 'name', l: 'Operator name', r: r => `<td>${esc(r.name)}</td>` }, ...SP.map(s => ({ k: s.k, l: s.n.replace('Surat ', 'Surat<br>'), r: r => `<td class="${s.cls}">${r[s.k]}</td>` }))], rows);
+  }
+}
+function renderAlerts(only) {
+  const pl = PERIODS[state.period.a1], pp = PERIODS[state.period.a2], pt = PERIODS[state.period.a3];
+  if (!only || only === 'line') {
+    lineChart($('#a-line'), { cats: Array.from({ length: pl.to - pl.from }, (_, i) => pl.from + i + 1), yTitle: 'Count', title: i => `Day ${pl.from + i + 1}`, series: AL.map(s => ({ name: s.n, color: s.hex, dash: true, hidden: state.hidden.a.has(s.k), data: dailyTotals(s.k, pl) })) });
+    $('#a-legend').innerHTML = AL.map(s => `<button data-k="${s.k}" class="${state.hidden.a.has(s.k) ? 'off' : ''}"><i style="border-color:${s.hex}"></i>${s.n}</button>`).join('');
+    $('#a-legend').querySelectorAll('button').forEach(b => b.onclick = () => { toggle(state.hidden.a, b.dataset.k); renderAlerts('line'); });
+  }
+  if (!only || only === 'pie') {
+    const slices = AL.map(s => ({ k: s.k, n: s.n, hex: s.hex, v: events.reduce((a, e) => a + sumRange(e[s.k], pp), 0) }));
+    pie($('#a-pie'), slices, k => hl('a', k)); rankList($('#a-rank'), 'a', slices, 'alerts', 'alert count');
+  }
+  if (!only || only === 'table') {
+    table($('#a-table'), 'a', [{ k: 'name', l: 'Operator name', r: r => `<td>${esc(r.name)}</td>` }, ...AL.map(s => ({ k: s.k, l: s.n.replace('States-', 'States-<br>').replace('Ftg. ', 'Ftg.<br>'), r: r => `<td class="${s.cls}">${r[s.k]}</td>` }))], perOperator(AL.map(s => s.k), pt));
+  }
+}
+function perfData() {
+  const curves = perfCurves(state.day), [a, b] = SHIFT[state.shift];
+  return NAMES.map((name, o) => {
+    const data = curves[o].map((v, i) => i >= a && i <= b ? v : null), vals = data.filter(v => v != null);
+    return { o, name, data, color: LINE_COLORS[o % LINE_COLORS.length], prod: +(vals.reduce((x, y) => x + y, 0) / vals.length).toFixed(1) };
+  });
+}
+function renderPerf(only) {
+  const ops = perfData();
+  if (!only || only === 'line') lineChart($('#p-line'), { cats: SLOTS, yTitle: 'BCM/hrs', maxHint: 25, title: i => slotTitle(i), series: ops.filter(p => state.vis.has(p.o)).map(p => ({ name: p.name, color: p.color, data: p.data })) });
+  if (!only || only === 'table') {
+    table($('#p-table'), 'p', [
+      { k: 'name', l: 'Operator name', r: r => `<td><span class="dotc" style="background:${r.color};opacity:${state.vis.has(r.o) ? 1 : .25}"></span>${esc(r.name)}</td>` },
+      { k: 'prod', l: 'Production', r: r => `<td class="prod">${r.prod}<small>BCM/hrs</small></td>` },
+      { k: 'vis', l: 'Visibility', r: r => `<td><input type="checkbox" class="vis" data-o="${r.o}" aria-label="Show ${esc(r.name)}" ${state.vis.has(r.o) ? 'checked' : ''}></td>` }
+    ], ops, el => el.querySelectorAll('.vis').forEach(c => c.addEventListener('change', () => {
+      toggle(state.vis, +c.dataset.o); $('#p-hint').classList.toggle('on', state.vis.size > 10);
+      renderPerf('line'); el.querySelectorAll('.vis').forEach(x => x.closest('tr').querySelector('.dotc').style.opacity = state.vis.has(+x.dataset.o) ? 1 : .25);
+    })));
+  }
+}
+const toggle = (set, k) => set.has(k) ? set.delete(k) : set.add(k);
+const refreshTable = { v: () => renderViolations('table'), a: () => renderAlerts('table'), p: () => renderPerf('table') };
+const refreshPie = { v: () => renderViolations('pie'), a: () => renderAlerts('pie') };
+function renderAll() { renderViolations(); renderAlerts(); renderPerf(); }
+
+/* ---------- Periods, shell, export ---------- */
+function initControls() {
+  const opts = Object.entries(PERIODS).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join('');
+  document.querySelectorAll('[data-period]').forEach(s => { s.innerHTML = opts; s.value = state.period[s.dataset.period]; });
+  $('#g-period').innerHTML = opts;
+  const apply = (ids, val) => {
+    ids.forEach(i => { state.period[i] = val; document.querySelector(`[data-period="${i}"]`).value = val; });
+    renderViolations(); renderAlerts();
+  };
+  // Global select always sets every card. With sync on, a card select also sets every card.
+  document.querySelectorAll('[data-period]').forEach(s => s.addEventListener('change', () => {
+    apply(state.sync ? Object.keys(state.period) : [s.dataset.period], s.value);
+    if (state.sync) $('#g-period').value = s.value;
+  }));
+  $('#g-period').addEventListener('change', e => apply(Object.keys(state.period), e.target.value));
+  $('#g-sync').addEventListener('change', e => { state.sync = e.target.checked; });
+  $('#p-shift').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.shift = b.dataset.s; $('#p-shift').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderPerf(); });
+  $('#p-day').addEventListener('change', e => { state.day = +e.target.value; renderPerf(); });
+  document.querySelectorAll('[data-collapse]').forEach(b => b.addEventListener('click', () => { const s = b.closest('section'); s.classList.toggle('collapsed'); if (!s.classList.contains('collapsed')) { renderAll(); } }));
+  $('#m-play').onclick = () => { $('#m-play').classList.add('on'); $('#m-live').classList.remove('on'); toast('Playback mode is not part of this prototype'); };
+  $('#m-live').onclick = () => { $('#m-live').classList.add('on'); $('#m-play').classList.remove('on'); };
+  document.querySelectorAll('[data-export]').forEach(b => b.onclick = () => exportCsv(b.dataset.export));
+  $('#export-all').onclick = () => exportCsv('all');
+  new ResizeObserver(() => { clearTimeout(initControls.t); initControls.t = setTimeout(() => renderAll(), 80); }).observe($('main'));
+}
+function csv(rows) { return rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n'); }
+function exportCsv(which) {
+  const parts = [];
+  if (which === 'v' || which === 'all') parts.push(['# Pelanggaran by operator (' + PERIODS[state.period.v3].label + ')'], ['Operator', ...SP.map(s => s.n)], ...perOperator(SP.map(s => s.k), PERIODS[state.period.v3]).map(r => [r.name, ...SP.map(s => r[s.k])]), []);
+  if (which === 'a' || which === 'all') parts.push(['# Alerts by operator (' + PERIODS[state.period.a3].label + ')'], ['Operator', ...AL.map(s => s.n)], ...perOperator(AL.map(s => s.k), PERIODS[state.period.a3]).map(r => [r.name, ...AL.map(s => r[s.k])]), []);
+  if (which === 'p' || which === 'all') parts.push(['# Operator performance BCM/hrs (' + state.shift + ' shift)'], ['Operator', 'Avg BCM/hrs', ...SLOTS], ...perfData().map(p => [p.name, p.prod, ...p.data.map(v => v ?? '')]));
+  const url = URL.createObjectURL(new Blob([csv(parts)], { type: 'text/csv' })), a = document.createElement('a');
+  a.href = url; a.download = `operator-data-${which}.csv`; a.click(); URL.revokeObjectURL(url); toast('Exported operator-data-' + which + '.csv');
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
+function tick() { $('#clock').textContent = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '').replace(/(\d{2}:\d{2})$/, '$1 WIB'); }
+tick(); setInterval(tick, 15000);
+state.vis = new Set(perfData().sort((a, b) => b.prod - a.prod).slice(0, 6).map(p => p.o));
+initControls(); renderAll();
+</script>
+</body>
+</html>
